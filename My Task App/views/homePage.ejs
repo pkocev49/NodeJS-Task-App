@@ -1,0 +1,116 @@
+<%- include("partials/homePageHeader"); -%>
+<form class="home-pageForm">
+  <h3 class="headerh3">Create A Task</h3>
+  <div class="items-conteiner">
+    <label class="label-name" for="taskName">Name</label>
+    <input type="text" name="taskName" class="homepage-name" />
+    <label for="creator">Creator</label>
+    <input type="text" name="creator" class="creator-homePage" />
+    <label for="description">Description</label>
+    <textarea
+      name="description"
+      cols="5"
+      rows="10"
+      class="description"
+    ></textarea>
+  </div>
+
+  <button class="addTaskBtn">Add task</button>
+</form>
+
+<div class="all-tasks-container">
+  <h3 class="allTh3">All Tasks</h3>
+  <div class="inner-div-container">
+    <% if(tasks.length >0) { %> <% tasks.forEach((task)=> { %>
+    <div class="inner-inner-div">
+      <h3 class="allTaskh3"><b>Task Name:</b> <%= task.taskName %></h3>
+
+      <h3 class="allTaskh3"><b>Creator:</b> <%= task.creator %></h3>
+      <h3 class="allTaskh3"><b>Description:</b> <%= task.description %></h3>
+      <br />
+    </div>
+
+    <% }) %> <% } else { %>
+    <p class="notask">No tasks found.</p>
+    <% } %>
+  </div>
+</div>
+
+<script>
+  let addTaskBtn = document.querySelector(".addTaskBtn");
+  let innerdiv = document.querySelector(".inner-div-container");
+  let homePageForm = document.querySelector(".home-pageForm");
+
+  homePageForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    console.log("first");
+    let nameInput = document.querySelector(".homepage-name").value;
+    let creatorInput = document.querySelector(".creator-homePage").value;
+    let descriptionInput = document.querySelector(".description").value;
+    console.log("here");
+    try {
+      const res = await fetch("/tasks/create-tasks", {
+        method: "POST",
+        body: JSON.stringify({
+          taskName: nameInput,
+          creator: creatorInput,
+          description: descriptionInput,
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      let taskElement = document.createElement("div");
+      taskElement.classList.add("inner-inner-div");
+
+      taskElement.innerHTML = `
+
+        <h3 class="allTaskh3"><b>Task Name:</b> ${data.taskName}</h3>
+        <h3 class="allTaskh3"><b>Creator:</b> ${data.creator}</h3>
+        <h3 class="allTaskh3"><b>Description:</b> ${data.description}</h3>
+        <button class="deleteTaskBtn" data-taskid="${data._id}">Delete</button>
+      
+    `;
+      document
+        .querySelector(".inner-div-container")
+        .addEventListener("click", async function (event) {
+          if (event.target.classList.contains("deleteTaskBtn")) {
+            const taskId = event.target.dataset.taskid;
+            console.log(taskId, "taskid");
+
+            try {
+              const res = await fetch(`/tasks/${taskId}`, {
+                method: "DELETE",
+              });
+
+              if (res.ok) {
+                const deletedTaskId = (await res.json()).deletedTaskId;
+
+                // Remove the deleted task from the UI
+                const deletedTaskElement = document.querySelector(
+                  `[data-taskid="${deletedTaskId}"]`
+                );
+                if (deletedTaskElement) {
+                  deletedTaskElement.closest(".inner-inner-div").remove();
+                } else {
+                  console.error(
+                    "Error: Task element not found for ID:",
+                    deletedTaskId
+                  );
+                }
+              } else {
+                console.error("Error deleting task:", res.statusText);
+              }
+            } catch (error) {
+              console.error("Error deleting task:", error);
+            }
+          }
+        });
+
+      document.querySelector(".inner-div-container ").appendChild(taskElement);
+    } catch (error) {
+      console.error("Error creating task:", error);
+    }
+  });
+</script>
+
+<%- include("partials/footer"); -%>
